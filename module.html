@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Module BRDs</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
+    <style>
+        .loader-row {
+            text-align: center;
+            padding: 30px;
+        }
+    </style>
+</head>
+
+<body class="bg-light p-4">
+
+    <div class="container">
+        <h3 id="title" class="mb-4"></h3>
+
+        <div class="row mb-4">
+            <div class="col-md-3">
+                <input id="brd_ref" class="form-control" placeholder="BRD Ref">
+            </div>
+            <div class="col-md-3">
+                <select id="status" class="form-select">
+                    <option>Demonstration is pending</option>
+                    <option>Pending</option>
+                    <option>In Progress</option>
+                    <option>Completed</option>
+                    <option>Partially Completed</option>
+                    <option>Re-Demo Required</option>
+                    <option>Fully Closed</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <button onclick="addBRD()" id="addBtn" class="btn btn-primary">
+                    Add BRD
+                </button>
+            </div>
+        </div>
+
+        <div class="card shadow-sm">
+            <table class="table table-bordered bg-white mb-0">
+                <thead class="table-light">
+                    <tr>
+
+                        <th>BRD Ref</th>
+
+                        <th>Total Bugs</th>
+                        <th>Pending</th>
+                        <th>Open</th>
+                        <th>In Progress</th>
+                        <th>Fixed</th>
+
+                        <th>Status</th>
+                        <th>Action</th>
+
+                    </tr>
+                </thead>
+                <tbody id="brds">
+                    <tr id="tableLoader">
+                        <td colspan="3" class="loader-row">
+                            <div class="spinner-border text-primary" role="status"></div>
+                            <div class="mt-2 text-muted">Loading BRDs...</div>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        const params = new URLSearchParams(window.location.search);
+        const module = params.get("module");
+
+        document.getElementById("title").innerText = (module || "Unknown") + " Module";
+
+        async function loadBRD() {
+            const tbody = document.getElementById("brds");
+            const loaderHtml = `
+                <tr id="tableLoader">
+                    <td colspan="3" class="loader-row">
+                        <div class="spinner-border text-primary" role="status"></div>
+                        <div class="mt-2 text-muted">Loading BRDs...</div>
+                    </td>
+                </tr>`;
+
+            // Show loader while fetching
+            tbody.innerHTML = loaderHtml;
+
+            try {
+                const res = await fetch("/api/get-brds?module=" + module);
+                const data = await res.json();
+
+                if (data.length === 0) {
+                    tbody.innerHTML = "<tr><td colspan='3' class='text-center p-4 text-muted'>No BRDs found for this module.</td></tr>";
+                    return;
+                }
+
+                let html = "";
+                data.forEach(b => {
+
+                    html += `
+
+<tr>
+
+<td>${b.brd_ref}</td>
+
+<td>
+<span class="badge bg-secondary">
+${b.total_issues || 0}
+</span>
+</td>
+
+<td>
+<span class="badge bg-warning text-dark">
+${b.pending || 0}
+</span>
+</td>
+
+<td>
+<span class="badge bg-primary">
+${b.open || 0}
+</span>
+</td>
+
+<td>
+<span class="badge bg-info text-dark">
+${b.in_progress || 0}
+</span>
+</td>
+
+<td>
+<span class="badge bg-success">
+${b.fixed || 0}
+</span>
+</td>
+
+<td>
+<span class="badge bg-dark">
+${b.uat_status}
+</span>
+</td>
+
+<td>
+
+<a 
+href="manage-issues.html?id=${b.id}" 
+class="btn btn-sm btn-outline-primary">
+
+Manage Issues
+
+</a>
+
+</td>
+
+</tr>
+
+`;
+
+                });
+                tbody.innerHTML = html;
+            } catch (error) {
+                tbody.innerHTML = "<tr><td colspan='3' class='text-center p-4 text-danger'>Error loading data.</td></tr>";
+            }
+        }
+
+        async function addBRD() {
+            const brd_ref_input = document.getElementById("brd_ref");
+            const brd_ref = brd_ref_input.value;
+            const status = document.getElementById("status").value;
+            const btn = document.getElementById("addBtn");
+
+            if (!brd_ref) {
+                alert("Please enter a BRD Reference");
+                return;
+            }
+
+            // Button loading state
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Adding...';
+
+            try {
+                await fetch("/api/add-brd", {
+                    method: "POST",
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ module, brd_ref, status })
+                });
+
+                brd_ref_input.value = "";
+                await loadBRD();
+            } catch (error) {
+                alert("Failed to add BRD");
+            } finally {
+                btn.disabled = false;
+                btn.innerText = "Add BRD";
+            }
+        }
+
+        loadBRD();
+    </script>
+
+</body>
+
+</html>

@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>UAT Tracker | Enterprise Dashboard</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --sidebar-bg: #0f172a;
+            --sidebar-hover: #1e293b;
+            --accent-color: #6366f1;
+            --bg-light: #f8fafc;
+            --text-main: #1e293b;
+            --text-muted: #64748b;
+            --border-color: #e2e8f0;
+        }
+
+        body {
+            background: var(--bg-light);
+            font-family: 'Inter', sans-serif;
+            color: var(--text-main);
+            overflow-x: hidden;
+        }
+
+        /* SIDEBAR */
+        .sidebar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            height: 100vh;
+            width: 260px;
+            background: var(--sidebar-bg);
+            color: #fff;
+            z-index: 1100;
+            transition: all 0.3s;
+            border-right: 1px solid var(--sidebar-hover);
+        }
+
+        .sidebar .logo-section {
+            padding: 24px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-weight: 700;
+            font-size: 1.25rem;
+            letter-spacing: -0.5px;
+            background: rgba(255,255,255,0.02);
+        }
+
+        .sidebar .nav-label {
+            padding: 20px 24px 10px;
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--text-muted);
+            font-weight: 700;
+        }
+
+        .sidebar a {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 24px;
+            color: #cbd5e1;
+            text-decoration: none;
+            transition: 0.2s;
+            margin: 4px 12px;
+            border-radius: 8px;
+            font-weight: 500;
+            font-size: 0.95rem;
+        }
+
+        .sidebar a:hover, .sidebar a.active {
+            background: var(--sidebar-hover);
+            color: #fff;
+        }
+
+        .sidebar a.active {
+            background: var(--accent-color);
+            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+        }
+
+        /* TOPBAR */
+        .topbar {
+            position: fixed;
+            left: 260px;
+            right: 0;
+            top: 0;
+            height: 70px;
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(10px);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 30px;
+            border-bottom: 1px solid var(--border-color);
+            z-index: 1000;
+        }
+
+        .search-bar {
+            background: #f1f5f9;
+            border-radius: 10px;
+            padding: 5px 15px;
+            display: flex;
+            align-items: center;
+            width: 300px;
+        }
+
+        .search-bar input {
+            background: transparent;
+            border: none;
+            outline: none;
+            padding-left: 10px;
+            font-size: 0.9rem;
+            width: 100%;
+        }
+
+        /* CONTENT */
+        .content {
+            margin-left: 260px;
+            padding: 100px 30px 40px;
+        }
+
+        /* CARDS */
+        .stat-card {
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 24px;
+            background: #fff;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px -5px rgba(0,0,0,0.05);
+        }
+
+        .icon-box {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* TABLE CUSTOMIZATION */
+        .table-container {
+            background: #fff;
+            border-radius: 16px;
+            border: 1px solid var(--border-color);
+            overflow: hidden;
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
+        }
+
+        .table thead th {
+            background: #f8fafc;
+            text-transform: uppercase;
+            font-size: 0.75rem;
+            letter-spacing: 0.5px;
+            font-weight: 700;
+            color: var(--text-muted);
+            padding: 16px 24px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .table tbody td {
+            padding: 18px 24px;
+            vertical-align: middle;
+            color: var(--text-main);
+            border-bottom: 1px solid #f1f5f9;
+        }
+
+        .badge {
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-weight: 600;
+            font-size: 0.75rem;
+        }
+
+        .badge.bg-warning { background-color: #fef3c7 !important; color: #92400e !important; }
+        .badge.bg-success { background-color: #dcfce7 !important; color: #166534 !important; }
+
+        .btn-primary {
+            background: var(--accent-color);
+            border: none;
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-weight: 500;
+        }
+
+        @media(max-width:992px) {
+            .sidebar { width: 80px; }
+            .sidebar .logo-section span:not(.material-icons-round), 
+            .sidebar a span:not(.material-icons-round),
+            .sidebar .nav-label { display: none; }
+            .topbar, .content { left: 80px; margin-left: 80px; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="sidebar">
+        <div class="logo-section">
+            <span class="material-icons-round text-primary" style="font-size: 2rem;">layers</span>
+            <span>UAT Tracker</span>
+        </div>
+        
+        <div class="nav-label">Main Menu</div>
+        <a href="#" class="active">
+            <span class="material-icons-round">grid_view</span>
+            <span>Dashboard</span>
+        </a>
+        <a href="#">
+            <span class="material-icons-round">assignment</span>
+            <span>BRD Tracker</span>
+        </a>
+        <a href="#">
+            <span class="material-icons-round">pest_control</span>
+            <span>Issue Log</span>
+        </a>
+
+        <div class="nav-label">System</div>
+        <a href="#">
+            <span class="material-icons-round">bar_chart</span>
+            <span>Analytics</span>
+        </a>
+        <a href="#">
+            <span class="material-icons-round">settings</span>
+            <span>Settings</span>
+        </a>
+        
+        <div style="position: absolute; bottom: 20px; width: 100%;">
+            <a href="#" style="color: #f87171;">
+                <span class="material-icons-round">logout</span>
+                <span>Sign Out</span>
+            </a>
+        </div>
+    </div>
+
+    <div class="topbar">
+        <div class="search-bar">
+            <span class="material-icons-round text-muted">search</span>
+            <input type="text" placeholder="Search anything...">
+        </div>
+        
+        <div class="d-flex align-items-center gap-3">
+            <div class="position-relative p-2">
+                <span class="material-icons-round text-muted">notifications</span>
+                <span class="position-absolute top-0 start-100 translate-middle p-1 bg-danger border border-light rounded-circle"></span>
+            </div>
+            <div class="d-flex align-items-center gap-2 border-start ps-3">
+                <div class="text-end d-none d-sm-block">
+                    <div class="fw-bold small">Alex Rivera</div>
+                    <div class="text-muted" style="font-size: 0.7rem;">Product Manager</div>
+                </div>
+                <img src="https://ui-avatars.com/api/?name=Alex+Rivera&background=6366f1&color=fff" class="rounded-circle" width="38" alt="Avatar">
+            </div>
+        </div>
+    </div>
+
+    <div class="content">
+        <div class="container-fluid">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h4 class="fw-bold mb-1">Project Overview</h4>
+                    <p class="text-muted small">Welcome back! Here is what's happening today.</p>
+                </div>
+                <button class="btn btn-primary d-flex align-items-center gap-2">
+                    <span class="material-icons-round" style="font-size: 1.2rem;">add</span>
+                    New Request
+                </button>
+            </div>
+
+            <div class="row g-4 mb-5">
+                <div class="col-md-3">
+                    <div class="stat-card shadow-sm">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div>
+                                <div class="text-muted small fw-medium">Total BRD</div>
+                                <h3 class="fw-bold mt-1">28</h3>
+                                <div class="text-success small mt-2">
+                                    <span class="fw-bold">↑ 12%</span> <span class="text-muted">vs last month</span>
+                                </div>
+                            </div>
+                            <div class="icon-box bg-primary-subtle text-primary">
+                                <span class="material-icons-round">description</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="stat-card shadow-sm">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div>
+                                <div class="text-muted small fw-medium">Active Issues</div>
+                                <h3 class="fw-bold mt-1">94</h3>
+                                <div class="text-danger small mt-2">
+                                    <span class="fw-bold">↑ 5%</span> <span class="text-muted">Needs attention</span>
+                                </div>
+                            </div>
+                            <div class="icon-box bg-danger-subtle text-danger">
+                                <span class="material-icons-round">bug_report</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="stat-card shadow-sm">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div>
+                                <div class="text-muted small fw-medium">Pending UAT</div>
+                                <h3 class="fw-bold mt-1">32</h3>
+                                <div class="text-muted small mt-2">
+                                    <span class="fw-bold">8</span> assigned to you
+                                </div>
+                            </div>
+                            <div class="icon-box bg-warning-subtle text-warning">
+                                <span class="material-icons-round">pending_actions</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="stat-card shadow-sm">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div>
+                                <div class="text-muted small fw-medium">Deployment Ready</div>
+                                <h3 class="fw-bold mt-1">62</h3>
+                                <div class="text-success small mt-2">
+                                    <span class="fw-bold">✓</span> Ready to sync
+                                </div>
+                            </div>
+                            <div class="icon-box bg-success-subtle text-success">
+                                <span class="material-icons-round">verified</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="table-container">
+                <div class="p-4 border-bottom d-flex justify-content-between align-items-center">
+                    <h5 class="fw-bold mb-0">Recent Business Requirements</h5>
+                    <button class="btn btn-sm btn-outline-secondary">View All</button>
+                </div>
+                <div class="table-responsive">
+                    <table class="table mb-0">
+                        <thead>
+                            <tr>
+                                <th>Module Name</th>
+                                <th>Reference ID</th>
+                                <th>Health Status</th>
+                                <th>Total Issues</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>
+                                    <div class="fw-bold">Order Management</div>
+                                    <div class="text-muted extra-small" style="font-size: 0.75rem;">Updated 2h ago</div>
+                                </td>
+                                <td><code class="text-primary fw-medium">BRD-1001</code></td>
+                                <td><span class="badge bg-warning text-dark">In Review</span></td>
+                                <td>
+                                    <div class="d-flex align-items-center gap-2">
+                                        <div class="progress w-50" style="height: 6px;">
+                                            <div class="progress-bar bg-primary" style="width: 70%"></div>
+                                        </div>
+                                        <span class="small fw-bold">4</span>
+                                    </div>
+                                </td>
+                                <td>
+                                    <button class="btn btn-light btn-sm rounded-circle"><span class="material-icons-round" style="font-size: 1.1rem; padding-top:4px;">more_vert</span></button>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>
+                                    <div class="fw-bold">Financial Tax Calc</div>
+                                    <div class="text-muted" style="font-size: 0.75rem;">Updated 5h ago</div>
+                                </td>
+                                <td><code class="text-primary fw-medium">BRD-1002</code></td>
+                                <td><span class="badge bg-success">Approved</span></td>
+                                <td>
+                                    <div class="d-flex align-items-center gap-2">
+                                        <div class="progress w-50" style="height: 6px;">
+                                            <div class="progress-bar bg-primary" style="width: 90%"></div>
+                                        </div>
+                                        <span class="small fw-bold">2</span>
+                                    </div>
+                                </td>
+                                <td>
+                                    <button class="btn btn-light btn-sm rounded-circle"><span class="material-icons-round" style="font-size: 1.1rem; padding-top:4px;">more_vert</span></button>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</body>
+</html>

@@ -1,119 +1,242 @@
 <!DOCTYPE html>
 <html>
+
 <head>
-<title>Manage Issues</title>
-<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <title>Manage Issues</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
+    <style>
+        #formPanel { display: none; }
+        .table-loading { opacity: 0.6; pointer-events: none; }
+        /* Badge colors for better visibility */
+        .status-badge { font-size: 0.85rem; }
+    </style>
 </head>
 
-<body class="p-4">
+<body class="bg-light p-4">
 
-<div class="container">
+   
 
-<h3>Manage Issues</h3>
+    <div class="container bg-white p-4 shadow-sm rounded">
 
-<table class="table table-bordered">
+         
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h3>Manage Issues <b id="moduleName"></b><span class="mx-2">></span><b id="brdRef">...</b>
+</h3>
+            <button class="btn btn-success" onclick="openAdd()" id="addMainBtn">
+                + Add New Issue
+            </button>
+        </div>
 
-<thead>
-<tr>
-<th>Title</th>
-<th>Assignee</th>
-<th>Status</th>
-<th>Action</th>
-</tr>
-</thead>
+        <div id="formPanel" class="card mb-4 border-primary shadow-sm">
+            <div class="card-header bg-primary text-white" id="panelTitle">
+                Issue Form
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-bordered align-middle">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Title</th>
+                                <th>Assignee</th>
+                                <th>Status</th>
+                                <th width="60"></th>
+                            </tr>
+                        </thead>
+                        <tbody id="formRows"></tbody>
+                    </table>
+                </div>
+                <div class="d-flex gap-2 mt-2">
+                    <button class="btn btn-outline-success" onclick="addRow()" id="rowBtn">+ Add Row</button>
+                    <button class="btn btn-primary" onclick="save()" id="saveBtn">Save Changes</button>
+                    <button class="btn btn-secondary" onclick="closePanel()">Cancel</button>
+                </div>
+            </div>
+        </div>
 
-<tbody id="issueBody"></tbody>
+        <div class="table-responsive">
+            <table class="table table-hover border" id="mainTable">
+                <thead class="table-light">
+                    <tr>
+                        <th>Title</th>
+                        <th>Assignee</th>
+                        <th>Status</th>
+                        <th width="100">Action</th>
+                    </tr>
+                </thead>
+                <tbody id="issueBody">
+                    <tr>
+                        <td colspan="4" class="text-center py-5">
+                            <div class="spinner-border text-primary" role="status"></div>
+                            <div class="mt-2 text-muted">Loading issues...</div>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
 
-</table>
+    <script>
+        const params = new URLSearchParams(window.location.search);
+        const brd_id = params.get("id");
+        let editMode = false;
+        let editId = null;
 
-<button class="btn btn-success" onclick="addRow()">Add Row</button>
-<button class="btn btn-primary" onclick="saveIssues()">Save</button>
+        function openAdd() {
+            editMode = false;
+            document.getElementById("panelTitle").innerText = "Add New Issues";
+            document.getElementById("formPanel").style.display = "block";
+            document.getElementById("formRows").innerHTML = "";
+            document.getElementById("rowBtn").style.display = "inline-block";
+            addRow();
+            window.scrollTo(0, 0);
+        }
 
-</div>
+        function openEdit(id, title, assignee, status) {
+            editMode = true;
+            editId = id;
+            document.getElementById("panelTitle").innerText = "Edit Issue";
+            document.getElementById("formPanel").style.display = "block";
+            document.getElementById("rowBtn").style.display = "none"; // Hide add row in edit mode
+            
+            document.getElementById("formRows").innerHTML = `
+                <tr>
+                    <td><input class="form-control title" value="${title}"></td>
+                    <td><input class="form-control assignee" value="${assignee}"></td>
+                    <td>
+                        <select class="form-select status">
+                            <option ${status=='Pending'?'selected':''}>Pending</option>
+                            <option ${status=='Open'?'selected':''}>Open</option>
+                            <option ${status=='In Progress'?'selected':''}>In Progress</option>
+                            <option ${status=='Fixed'?'selected':''}>Fixed</option>
+                        </select>
+                    </td>
+                    <td></td>
+                </tr>`;
+            window.scrollTo(0, 0);
+        }
 
-<script>
+        function addRow() {
+            const html = `
+                <tr>
+                    <td><input class="form-control title" placeholder="What's the issue?"></td>
+                    <td><input class="form-control assignee" placeholder="Who's fixing it?"></td>
+                    <td>
+                        <select class="form-select status">
+                            <option selected>Pending</option>
+                            <option>Open</option>
+                            <option>In Progress</option>
+                            <option>Fixed</option>
+                        </select>
+                    </td>
+                    <td class="text-center">
+                        <button class="btn btn-outline-danger btn-sm" onclick="this.closest('tr').remove()">×</button>
+                    </td>
+                </tr>`;
+            document.getElementById("formRows").insertAdjacentHTML("beforeend", html);
+        }
 
-const params = new URLSearchParams(window.location.search);
-const brd_id = params.get("id");
+        function closePanel() {
+            document.getElementById("formPanel").style.display = "none";
+        }
 
-function addRow(){
+        async function load() {
+            const tbody = document.getElementById("issueBody");
+            const table = document.getElementById("mainTable");
+            
+            table.classList.add("table-loading");
+            
+            try {
+                const res = await fetch("/api/get-issues?brd_id=" + brd_id);
+                const data = await res.json();
+                
+                if(data.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="4" class="text-center py-4 text-muted">No issues found. Click "Add Issues" to start.</td></tr>';
+                } else {
+                    let html = "";
+                    data.forEach(i => {
+                        const badgeClass = i.issue_status === 'Fixed' ? 'bg-success' : (i.issue_status === 'In Progress' ? 'bg-warning text-dark' : 'bg-info text-dark');
+                        html += `
+                            <tr>
+                                <td>${i.issue_title}</td>
+                                <td>${i.assignee || 'Unassigned'}</td>
+                                <td><span class="badge ${badgeClass} status-badge">${i.issue_status}</span></td>
+                                <td>
+                                    <button class="btn btn-sm btn-outline-primary" 
+                                        onclick="openEdit(${i.id}, '${i.issue_title}', '${i.assignee}', '${i.issue_status}')">
+                                        Edit
+                                    </button>
+                                </td>
+                            </tr>`;
+                    });
+                    tbody.innerHTML = html;
+                }
+            } catch (e) {
+                tbody.innerHTML = '<tr><td colspan="4" class="text-center text-danger">Error fetching data.</td></tr>';
+            } finally {
+                table.classList.remove("table-loading");
+            }
+        }
 
- const html=`
- <tr>
- <td><input class="form-control title"></td>
- <td><input class="form-control assignee"></td>
- <td>
- <select class="form-select status">
- <option>Open</option>
- <option>In Progress</option>
- <option>Fixed</option>
- </select>
- </td>
- <td><button onclick="this.closest('tr').remove()" class="btn btn-danger btn-sm">X</button></td>
- </tr>
- `;
+        async function save() {
+            const saveBtn = document.getElementById("saveBtn");
+            const rows = document.querySelectorAll("#formRows tr");
+            const issues = [];
 
- document.getElementById("issueBody").insertAdjacentHTML("beforeend",html);
+            rows.forEach(r => {
+                const title = r.querySelector(".title").value;
+                if (title.trim()) {
+                    // issues.push({
+                    //     id: editMode ? editId : null, // Pass ID if editing
+                    //     title: title,
+                    //     assignee: r.querySelector(".assignee").value,
+                    //     status: r.querySelector(".status").value
+                    // });
+                    issues.push({
+                        id: editMode ? editId : null,
+                        title: title,
+                        assignee: r.querySelector(".assignee").value,
+                        status: r.querySelector(".status").value
+                        });
+                }
+            });
 
-}
+            if(issues.length === 0) return alert("Please add at least one issue title.");
 
-async function loadIssues(){
+            // Loading State
+            saveBtn.disabled = true;
+            saveBtn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Saving...';
 
- const res = await fetch("/api/get-issues?brd_id="+brd_id);
- const data = await res.json();
+            try {
+                await fetch("/api/save-issues", {
+                    method: "POST",
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ brd_id, issues, editMode })
+                });
+                closePanel();
+                await load();
+            } catch (error) {
+                alert("Save failed!");
+            } finally {
+                saveBtn.disabled = false;
+                saveBtn.innerText = "Save Changes";
+            }
+        }
 
- data.forEach(i=>{
+        
 
-  const html=`
-  <tr>
-  <td><input class="form-control title" value="${i.issue_title}"></td>
-  <td><input class="form-control assignee" value="${i.assignee}"></td>
-  <td>
-  <select class="form-select status">
-  <option ${i.issue_status=="Open"?"selected":""}>Open</option>
-  <option ${i.issue_status=="In Progress"?"selected":""}>In Progress</option>
-  <option ${i.issue_status=="Fixed"?"selected":""}>Fixed</option>
-  </select>
-  </td>
-  <td><button onclick="this.closest('tr').remove()" class="btn btn-danger btn-sm">X</button></td>
-  </tr>
-  `;
+        async function loadBRDInfo(){
 
-  document.getElementById("issueBody").insertAdjacentHTML("beforeend",html);
+        const res = await fetch("/api/get-brd-info?brd_id=" + brd_id);
 
- });
+        const data = await res.json();
 
-}
+        document.getElementById("moduleName").innerText = data.module;
+        document.getElementById("brdRef").innerText = data.brd_ref;
 
-async function saveIssues(){
+        }
 
- const rows = document.querySelectorAll("#issueBody tr");
-
- const issues=[];
-
- rows.forEach(r=>{
-
-  issues.push({
-   title:r.querySelector(".title").value,
-   assignee:r.querySelector(".assignee").value,
-   status:r.querySelector(".status").value
-  });
-
- });
-
- await fetch("/api/save-issues",{
-  method:"POST",
-  headers:{"Content-Type":"application/json"},
-  body:JSON.stringify({brd_id,issues})
- });
-
- alert("Saved");
-
-}
-
-loadIssues();
-
-</script>
-
+        load();
+        loadBRDInfo()
+    </script>
 </body>
 </html>

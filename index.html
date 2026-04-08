@@ -1,112 +1,151 @@
 <!DOCTYPE html>
 <html>
+
 <head>
-<title>UAT Tracker</title>
-<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <title>UAT Tracker</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
+    <style>
+        /* Loader ki styling */
+        .loader-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+    </style>
 </head>
 
-<body class="p-4">
+<body class="bg-light p-4">
 
-<div class="container">
+    <div class="container">
+        <h3 class="mb-4">UAT Tracker Dashboard</h3>
 
-<h3>Register BRD</h3>
+        <div class="card mb-4">
+            <div class="card-header">Create BRD</div>
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-md-3">
+                        <select id="module" class="form-select">
+                            <option>OMS</option>
+                            <option>MIS</option>
+                            <option>FTC</option>
+                            <option>Scheduling</option>
+                            <option>Open Access</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <input id="brd_ref" class="form-control" placeholder="BRD Ref (ex MIS001)">
+                    </div>
+                    <div class="col-md-3">
+                        <select id="status" class="form-select">
+                            <option selected>Demonstration is pending</option>
+                            <option>Pending</option>
+                            <option>In Progress</option>
+                            <option>Completed</option>
+                            <option>Partially Completed</option>
+                            <option>Re-Demo Required</option>
+                            <option>Fully Closed</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <button onclick="addBRD()" id="createBtn" class="btn btn-primary w-100">
+                            Create BRD
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
 
-<div class="row mb-4">
+        <div class="card">
+            <div class="card-header">Modules Summary</div>
+            <div class="card-body p-0">
+                <div id="loader" class="loader-container">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <span class="ms-2">Fetching data...</span>
+                </div>
 
-<div class="col">
-<select id="module" class="form-select">
-<option>OMS</option>
-<option>FTC</option>
-<option>MIS</option>
-<option>Scheduling</option>
-</select>
-</div>
+                <table class="table table-bordered mb-0" id="moduleTable" style="display: none;">
+                    <thead>
+                        <tr>
+                            <th>Module</th>
+                            <th>Total BRD</th>
+                            <th>Closed</th>
+                            <th>Pending</th>
+                        </tr>
+                    </thead>
+                    <tbody id="modules"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
 
-<div class="col">
-<input id="brd" class="form-control" placeholder="BRD Ref">
-</div>
+    <script>
+        async function loadModules() {
+            const loader = document.getElementById("loader");
+            const table = document.getElementById("moduleTable");
+            const tbody = document.getElementById("modules");
 
-<div class="col">
-<select id="status" class="form-select">
-<option>Completed</option>
-<option>Partially Completed</option>
-<option>Re-Demo Required</option>
-<option>Fully Closed</option>
-</select>
-</div>
+            // 1. Show Loader, Hide Table
+            loader.style.display = "flex";
+            table.style.display = "none";
 
-<div class="col">
-<button class="btn btn-primary" onclick="createBRD()">Create</button>
-</div>
+            try {
+                const res = await fetch("/api/module-summary");
+                const data = await res.json();
 
-</div>
+                let html = "";
+                data.forEach(m => {
+                    html += `
+                        <tr>
+                            <td><a href="module.html?module=${m.module}">${m.module}</a></td>
+                            <td>${m.total_brd}</td>
+                            <td>${m.closed}</td>
+                            <td>${m.pending}</td>
+                        </tr>`;
+                });
 
-<h4>BRD List</h4>
+                tbody.innerHTML = html;
+            } catch (error) {
+                tbody.innerHTML = "<tr><td colspan='4' class='text-center text-danger'>Failed to load data.</td></tr>";
+            } finally {
+                // 2. Hide Loader, Show Table
+                loader.style.display = "none";
+                table.style.display = "table";
+            }
+        }
 
-<table class="table table-bordered">
-<thead>
-<tr>
-<th>Module</th>
-<th>BRD</th>
-<th>Status</th>
-<th>Action</th>
-</tr>
-</thead>
+        async function addBRD() {
+            const btn = document.getElementById("createBtn");
+            const module = document.getElementById("module").value;
+            const brd_ref = document.getElementById("brd_ref").value;
+            const status = document.getElementById("status").value;
 
-<tbody id="brdTable"></tbody>
+            if (!brd_ref) return alert("Please enter BRD Ref");
 
-</table>
+            // Disable button during save
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Saving...';
 
-</div>
+            try {
+                await fetch("/api/add-brd", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ module, brd_ref, status })
+                });
 
-<script>
+                document.getElementById("brd_ref").value = "";
+                await loadModules();
+            } finally {
+                btn.disabled = false;
+                btn.innerText = "Create BRD";
+            }
+        }
 
-async function createBRD(){
-
- const data={
-  module:document.getElementById("module").value,
-  brd_ref:document.getElementById("brd").value,
-  status:document.getElementById("status").value
- };
-
- await fetch("/api/add-brd",{
-  method:"POST",
-  headers:{"Content-Type":"application/json"},
-  body:JSON.stringify(data)
- });
-
- loadBRDs();
-}
-
-async function loadBRDs(){
-
- const res = await fetch("/api/get-brds");
- const data = await res.json();
-
- let html="";
-
- data.forEach(b=>{
-
-  html+=`
-   <tr>
-    <td>${b.module}</td>
-    <td>${b.brd_ref}</td>
-    <td>${b.uat_status}</td>
-    <td>
-    <a href="manage-issues.html?id=${b.id}" class="btn btn-sm btn-danger">Manage Issues</a>
-    </td>
-   </tr>
-  `;
-
- });
-
- document.getElementById("brdTable").innerHTML=html;
-
-}
-
-loadBRDs();
-
-</script>
-
+        // Initial Load
+        loadModules();
+    </script>
 </body>
+
 </html>

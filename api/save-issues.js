@@ -1,30 +1,57 @@
 const pool = require("./db");
 
-module.exports = async (req,res)=>{
+module.exports = async (req, res) => {
 
- if(req.method !== "POST"){
-   return res.status(405).json({error:"Method not allowed"});
- }
+const { brd_id, issues, editMode } = req.body;
 
- const {brd_id,issues} = req.body;
+try {
 
- try{
+if(editMode){
 
-   await pool.query("DELETE FROM issues WHERE brd_id=$1",[brd_id]);
+// EDIT SINGLE ISSUE
 
-   for(const issue of issues){
+const i = issues[0];
 
-     await pool.query(
-       "INSERT INTO issues(brd_id,issue_title,assignee,issue_status) VALUES($1,$2,$3,$4)",
-       [brd_id,issue.title,issue.assignee,issue.status]
-     );
+await pool.query(
 
-   }
+`UPDATE issues
+SET issue_title=$1,
+assignee=$2,
+issue_status=$3
+WHERE id=$4`,
 
-   res.json({success:true});
+[i.title, i.assignee, i.status, i.id]
 
- }catch(e){
-   res.status(500).json({error:e.message});
- }
+);
+
+}else{
+
+// ADD MULTIPLE ISSUES
+
+for(const i of issues){
+
+await pool.query(
+
+`INSERT INTO issues
+(brd_id, issue_title, assignee, issue_status)
+VALUES ($1,$2,$3,$4)`,
+
+[brd_id, i.title, i.assignee, i.status]
+
+);
 
 }
+
+}
+
+res.json({success:true});
+
+}catch(err){
+
+console.log(err);
+
+res.status(500).json({error:"DB error"});
+
+}
+
+};
